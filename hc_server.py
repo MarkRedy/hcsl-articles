@@ -52,6 +52,8 @@ DEFAULT_SOURCES = [
     {"id": "pp-op",      "name": "人民日报·人民时评", "type": "html", "url": "http://opinion.people.com.cn/", "on": True, "parse": "ppop"},
     {"id": "sh-gov",     "name": "上海市政府·要闻动态", "type": "html", "url": "https://www.shanghai.gov.cn/nw2315/index.html", "on": True, "parse": "shgov"},
     {"id": "gov-zc",     "name": "国务院·最新政策", "type": "html", "url": "https://www.gov.cn/zhengce/zuixin/", "on": False, "parse": "govzc"},
+    {"id": "jiemian",    "name": "界面新闻·商业深度", "type": "html", "url": "https://www.jiemian.com/", "on": True, "parse": "jiemian"},
+    {"id": "yicai",      "name": "第一财经·财经资讯", "type": "html", "url": "https://www.yicai.com/", "on": True, "parse": "yicai"},
 ]
 
 # ---------------- 自动打标（关键词 → 标签） ----------------
@@ -303,7 +305,28 @@ def parse_govzc(text):
         out.append({"title": title, "url": href if href.startswith("http") else "https://www.gov.cn" + href, "summary": "", "pub": ""})
     return out
 
-HTML_PARSERS = {"ppop": parse_ppop, "shgov": parse_shgov, "govzc": parse_govzc}
+def parse_jiemian(text):
+    out = []
+    for href, title in iter_links(text):
+        if not re.search(r"/article/\d+\.html", href):
+            continue
+        if len(title) < 8:
+            continue
+        out.append({"title": title, "url": href if href.startswith("http") else "https://www.jiemian.com" + href, "summary": "", "pub": ""})
+    return out
+
+def parse_yicai(text):
+    out = []
+    for href, title in iter_links(text):
+        if not re.search(r"/news/\d+\.html", href):
+            continue
+        if len(title) < 8:
+            continue
+        out.append({"title": title, "url": href if href.startswith("http") else "https://www.yicai.com" + href, "summary": "", "pub": ""})
+    return out
+
+HTML_PARSERS = {"ppop": parse_ppop, "shgov": parse_shgov, "govzc": parse_govzc,
+                "jiemian": parse_jiemian, "yicai": parse_yicai}
 
 class Fetcher:
     def __init__(self):
