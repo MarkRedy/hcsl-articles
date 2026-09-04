@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>行测申论 · 每日时政积累</title>
+<!--
+  行测申论 · 每日时政积累（单文件，无依赖）
+  数据来源（2026-09 实测可用性）：
+    · 中新网各频道 RSS —— 浏览器可直连（响应带 Access-Control-Allow-Origin: *），当日更新
+    · 人民网·人民时评、上海市政府要闻动态、国务院最新政策 —— 网页抓取，依赖公共 CORS 代理（公共代理可用性有波动）
+    · 人民网官方 RSS 已于 2025-06 停更，故人民日报内容改从「人民时评」网页聚合
+  每天首次打开自动抓取当日内容并按日期缓存（保留最近 7 天），之后打开秒开。
+-->
+<style>
+:root{
+  --bg:#f5f6f8; --card:#ffffff; --ink:#1d2129; --ink2:#5b6472; --line:#e5e8ee;
+  --accent:#b52a1e; --accent-bg:#fdf0ee; --link:#1a5fb4; --ok:#1a9e5c; --warn:#d17d00; --bad:#c23b3b;
+  --chip:#eef1f5; --chip-on:#b52a1e; --shadow:0 1px 3px rgba(20,30,50,.08);
+}
+html[data-theme="dark"]{
+  --bg:#14171c; --card:#1d2129; --ink:#e8eaf0; --ink2:#9aa3b2; --line:#2c323d;
+  --accent-bg:#33201d; --link:#6db3ff; --chip:#252b34; --chip-on:#e05a4c; --shadow:0 1px 3px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.65 -apple-system,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px}
+
+/* ---------- header ---------- */
+header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.hrow{display:flex;align-items:center;gap:12px;padding:12px 0;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:10px;margin-right:auto}
+.logo .dot{width:12px;height:12px;border-radius:3px;background:var(--accent);flex:none}
+h1{font-size:19px;margin:0;letter-spacing:.5px}
+h1 small{font-size:12px;color:var(--ink2);font-weight:normal;margin-left:8px}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;
+  padding:6px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{opacity:.9;color:#fff}
+.datebar{display:flex;align-items:center;gap:14px;padding:0 0 10px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.datebar b{color:var(--ink);font-size:15px}
+#srcbar{display:flex;gap:6px;flex-wrap:wrap;padding-bottom:10px}
+.srcdot{display:inline-flex;align-items:center;gap:5px;font-size:12px;border:1px solid var(--line);
+  border-radius:20px;padding:2px 10px;background:var(--bg);cursor:pointer;color:var(--ink2)}
+.srcdot .st{width:8px;height:8px;border-radius:50%;background:#9aa3b2;flex:none}
+.srcdot.ok .st{background:var(--ok)} .srcdot.fail .st{background:var(--bad)}
+.srcdot.loading .st{background:var(--warn);animation:pulse 1s infinite}
+.srcdot.on{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+@keyframes pulse{50%{opacity:.3}}
+#statusline{font-size:12.5px;color:var(--ink2);padding:0 0 10px;min-height:18px}
+
+/* ---------- chips ---------- */
+.chipbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 0 4px;position:sticky;top:0;
+  background:var(--bg);z-index:10}
+.chip{border:none;background:var(--chip);color:var(--ink2);border-radius:20px;padding:5px 14px;
+  font-size:13px;cursor:pointer}
+.chip:hover{color:var(--ink)}
+.chip.on{background:var(--chip-on);color:#fff}
+#q{flex:1;min-width:160px;max-width:280px;border:1px solid var(--line);border-radius:8px;
+  padding:6px 10px;font-size:13px;background:var(--card);color:var(--ink)}
+
+/* ---------- list ---------- */
+main{padding:6px 0 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 16px;
+  margin:10px 0;box-shadow:var(--shadow)}
+.card .meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--ink2)}
+.card .src{background:var(--accent-bg);color:var(--accent);border-radius:4px;padding:1px 7px;font-weight:600}
+.tag{border:1px solid var(--line);border-radius:4px;padding:0 6px}
+.tag.t-fanwen{border-color:var(--accent);color:var(--accent)}
+.tag.t-sh{border-color:#2a6fb5;color:#2a6fb5}
+html[data-theme="dark"] .tag.t-sh{color:#6db3ff;border-color:#3a6f9e}
+.card h3{margin:7px 0 4px;font-size:16px;line-height:1.5}
+.card h3 a{color:var(--ink)}
+.card h3 a:hover{color:var(--accent)}
+.card .sum{margin:2px 0 0;font-size:13.5px;color:var(--ink2);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.star{margin-left:auto;background:none;border:none;font-size:17px;cursor:pointer;color:#c0c6cf;line-height:1}
+.star.faved{color:#e8a400}
+.more{display:block;margin:18px auto;padding:8px 26px}
+.empty{ text-align:center;color:var(--ink2);padding:60px 0;font-size:14px}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--line);color:var(--ink2);font-size:12.5px;padding:18px 0 40px;background:var(--card)}
+footer h4{color:var(--ink);margin:14px 0 4px;font-size:13.5px}
+footer p{margin:4px 0}
+
+/* ---------- modal ---------- */
+.mask{position:fixed;inset:0;background:rgba(10,14,20,.45);z-index:50;display:none}
+.mask.show{display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:40px 12px}
+.modal{background:var(--card);border-radius:12px;max-width:760px;width:100%;padding:20px 22px;box-shadow:0 8px 40px rgba(0,0,0,.25)}
+.modal h2{margin:0 0 12px;font-size:17px}
+.modal h2 .x{float:right;cursor:pointer;color:var(--ink2);font-weight:normal}
+.srcrow{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13.5px;flex-wrap:wrap}
+.srcrow .nm{min-width:150px}
+.srcrow .url{flex:1;color:var(--ink2);font-size:12px;word-break:break-all}
+.srcrow .cnt{font-size:12px;color:var(--ink2);white-space:nowrap}
+.switch{position:relative;width:34px;height:19px;flex:none}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;inset:0;background:#c0c6cf;border-radius:19px;cursor:pointer;transition:.2s}
+.slider:before{content:"";position:absolute;width:15px;height:15px;left:2px;top:2px;background:#fff;border-radius:50%;transition:.2s}
+.switch input:checked + .slider{background:var(--ok)}
+.switch input:checked + .slider:before{transform:translateX(15px)}
+textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px;font-size:12.5px;
+  font-family:Consolas,monospace;background:var(--bg);color:var(--ink);min-height:70px}
+.mrow{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.hint{font-size:12.5px;color:var(--ink2);margin:8px 0}
+.del{color:var(--bad);cursor:pointer;border:none;background:none;font-size:12px}
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  padding:8px 18px;border-radius:8px;font-size:13px;z-index:99;display:none}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="hrow">
+      <div class="logo"><span class="dot"></span><h1>行测申论 · 每日时政积累<small>人民日报 / 上海发布 / 中新网 等</small></h1></div>
+      <button class="btn" id="btnFav">☆ 收藏夹</button>
+      <button class="btn" id="btnExport">复制清单</button>
+      <button class="btn" id="btnSet">源设置</button>
+      <button class="btn" id="btnHelp">?</button>
+      <button class="btn primary" id="btnRefresh">⟳ 刷新</button>
+    </div>
+    <div class="datebar"><b id="today"></b><span id="stat"></span></div>
+    <div id="srcbar"></div>
+    <div id="statusline"></div>
+  </div>
+</header>
+<div class="wrap">
+  <div class="chipbar" id="chipbar">
+    <input id="q" type="search" placeholder="搜索标题 / 关键词…">
+  </div>
+</div>
+<main class="wrap"><div id="list"></div></main>
+<footer class="wrap">
+  <h4>每日更新逻辑</h4>
+  <p>每天首次打开自动抓取当日内容（按日期缓存，保留最近 7 天），之后打开秒开；点「⟳ 刷新」可随时手动更新。中新网各频道为直连抓取；「人民时评 / 上海要闻 / 国务院政策」为网页抓取，依赖公共跨域代理，速度较慢且偶尔失败（失败时红点，改天或换网络再试即可）。</p>
+  <h4>关于「人民日报」「上海发布」</h4>
+  <p>人民网官方 RSS 已于 2025 年停更，本页改从「人民时评」频道网页聚合人民日报评论文章（申论范文）。「上海发布」为微信公众号、无公开 RSS，本页以上海市政府官网「要闻动态」替代；如需公众号原文，可在 RSSHub 等自建服务生成 RSS 后，于「源设置 → 添加源」粘贴地址。</p>
+  <h4>版权说明</h4>
+  <p>本页仅聚合标题、摘要与原文链接用于个人学习备考，内容版权归原作者与原发布机构所有，请点击链接阅读原文。</p>
+</footer>
+
+<div class="mask" id="maskSet"><div class="modal">
+  <h2>源设置 <span class="x" data-close="maskSet">✕</span></h2>
+  <div id="srcList"></div>
+  <div class="mrow" style="border-top:1px solid var(--line);padding-top:12px">
+    <input id="newName" placeholder="源名称（如：某某公众号）" style="flex:1;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--bg);color:var(--ink)">
+    <input id="newUrl" placeholder="RSS 地址 https://…" style="flex:2;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--bg);color:var(--ink)">
+    <button class="btn" id="btnAddSrc">＋ 添加源</button>
+  </div>
+  <p class="hint">支持任意 RSS 2.0 / Atom 地址。抓取顺序：浏览器直连 → rss2json（限 10 条）→ 公共代理。中国大陆网络下，公众号 RSS 可用自建 RSSHub 生成。</p>
+  <div class="mrow">
+    <button class="btn" id="btnSaveSrc">保存</button>
+    <button class="btn" id="btnResetSrc">恢复默认源</button>
+    <button class="btn" id="btnClearCache">清除缓存并重抓</button>
+  </div>
+</div></div>
+
+<div class="mask" id="maskHelp"><div class="modal">
+  <h2>使用说明 <span class="x" data-close="maskHelp">✕</span></h2>
+  <p><b>用途：</b>每天自动收集与行测（常识、时政）、申论（热点、范文）、面试相关的文章，自动打标签、可搜索、可收藏导出。</p>
+  <p><b>分类：</b>页面按关键词自动打标 —— 申论范文 / 上海 / 政策热点 / 常识·科技 / 常识·人文 / 常识·法律 / 民生热点 / 国际视野，点顶部标签筛选。</p>
+  <p><b>收藏导出：</b>点卡片右上角 ☆ 收藏；「收藏夹」里可查看；「复制清单」把当前筛选结果复制为 Markdown 链接清单，可粘进笔记软件。</p>
+  <p><b>打不开数据？</b>本页为本地单文件，建议用 Chrome / Edge 直接双击打开。若浏览器限制本地页面的网络请求，可在本目录运行 <code>python -m http.server 8000</code> 后访问 <a href="http://localhost:8000" target="_blank" rel="noopener">http://localhost:8000</a>。</p>
+  <p><b>代理波动：</b>「人民时评 / 上海要闻 / 国务院政策」三个网页源经公共代理抓取，公共代理偶尔限流（红点 = 今日该源未取到）。刷新按钮会重试；中新网八个频道不受影响。</p>
+</div></div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ================= 配置 ================= */
+const CN = "https://www.chinanews.com.cn/rss/";
+const DEFAULT_SOURCES = [
+  {id:"cn-scroll", name:"中新网·即时要闻", type:"rss", url:CN+"scroll-news.xml", on:true},
+  {id:"cn-china",  name:"中新网·国内时政", type:"rss", url:CN+"china.xml",        on:true},
+  {id:"cn-world",  name:"中新网·国际视野", type:"rss", url:CN+"world.xml",        on:true},
+  {id:"cn-fz",     name:"中新网·法治中国", type:"rss", url:CN+"fz.xml",           on:true},
+  {id:"cn-culture",name:"中新网·文化文艺", type:"rss", url:CN+"culture.xml",      on:true},
+  {id:"cn-edu",    name:"中新网·教育科技", type:"rss", url:CN+"edu.xml",          on:true},
+  {id:"cn-finance",name:"中新网·财经经济", type:"rss", url:CN+"finance.xml",      on:true},
+  {id:"cn-society",name:"中新网·社会民生", type:"rss", url:CN+"society.xml",      on:true},
+  {id:"cn-life",   name:"中新网·生活健康", type:"rss", url:CN+"life.xml",         on:false},
+  {id:"pp-op",     name:"人民日报·人民时评", type:"html", url:"http://opinion.people.com.cn/", on:true, parse:"ppop"},
+  {id:"sh-gov",    name:"上海市政府·要闻动态", type:"html", url:"https://www.shanghai.gov.cn/nw2315/index.html", on:true, parse:"shgov"},
+  {id:"gov-zc",    name:"国务院·最新政策", type:"html", url:"https://www.gov.cn/zhengce/zuixin/", on:false, parse:"govzc"},
+];
+const TAG_RULES = [
+  {tag:"上海",     re:/上海|沪上|浦东|临港|长三角|进博会|黄浦江|苏州河|崇明|虹桥|洋山|一网通办|沪/},
+  {tag:"常识·法律", re:/法庭?|法院|检察院|立法|草案|民法典|刑法|反诈|治安|律师|司法|普法|维权|仲裁|判决|条例/},
+  {tag:"常识·科技", re:/航天|发射|嫦娥|天问|空间站|北斗|卫星|量子|芯片|人工智能|\bAI\b|大模型|机器人|深海|超导|诺贝尔|科研|5G|6G|算力|新能源|探月|祝融/},
+  {tag:"常识·人文", re:/文物|考古|遗址|非遗|世界遗产|博物馆|节气|申遗|典籍|汉字|古籍|传统村落|文化遗产|历史/},
+  {tag:"政策热点", re:/印发|出台|施行|征求意见|规划|方案|意见|部署|会议|发布会|国务院|中央|改革|纲要|白皮书/},
+  {tag:"民生热点", re:/就业|毕业生|医疗|养老|托育|住房|生育|社保|物价|食品安全|交通|快递|外卖|教育|双减|医保|老旧小区|充电|停车/},
+  {tag:"经济金融", re:/经济|消费|外贸|出口|企业|市场|投资|金融|民营|制造业|服务业|文旅|假日经济|数字/},
+  {tag:"国际视野", re:/美国|日本|俄罗斯|欧盟|联合国|世卫|外交部|外交|国际|全球|中法|中美|中俄|中东|东盟/},
+];
+const CHIPS = [
+  {key:"all",   label:"全部",   test:()=>true},
+  {key:"fanwen",label:"申论范文", test:it=>it.tags.includes("申论范文")},
+  {key:"sh",    label:"上海",   test:it=>it.tags.includes("上海")},
+  {key:"zc",    label:"政策热点", test:it=>it.tags.includes("政策热点")},
+  {key:"cs",    label:"常识",   test:it=>it.tags.some(t=>t.startsWith("常识"))},
+  {key:"ms",    label:"民生",   test:it=>it.tags.includes("民生热点")},
+  {key:"jj",    label:"经济",   test:it=>it.tags.includes("经济金融")},
+  {key:"gj",    label:"国际",   test:it=>it.tags.includes("国际视野")},
+];
+const RAW_PROXIES = [
+  u => "https://api.cors.lol/?url=" + encodeURIComponent(u),
+  u => "https://api.allorigins.win/raw?url=" + encodeURIComponent(u),
+];
+const R2J = u => "https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(u);
+const MAX_AGE_DAYS = 7;          // 缓存保留天数
+const RAW_RETRY_WAIT = 22000;    // 代理 429 后等待
+const RAW_GAP = 15000;           // 不同网页源之间间隔
+
+/* ================= 工具 ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function stripHtml(html){
+  if(!html) return "";
+  const d = document.createElement("div"); d.innerHTML = html;
+  return (d.textContent||"").replace(/\s+/g," ").trim();
+}
+function hashId(s){ let h=5381; for(let i=0;i<s.length;i++) h=((h<<5)+h+s.charCodeAt(i))>>>0; return h.toString(36); }
+function todayStr(d=new Date()){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function parseWhen(s, url){
+  if(s){ s = String(s).trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2}))?/);
+    if(m) return new Date(+m[1], m[2]-1, +m[3], +(m[4]||9), +(m[5]||0)).getTime();
+    const t = Date.parse(s); if(!isNaN(t)) return t;
+  }
+  if(url){
+    let m = url.match(/\/(\d{4})(\d{2})(\d{2})\//);
+    if(m) return new Date(+m[1], m[2]-1, +m[3], 9).getTime();
+    m = url.match(/\/n1\/(\d{4})\/(\d{2})(\d{2})\//);
+    if(m) return new Date(+m[1], m[2]-1, +m[3], 9).getTime();
+    m = url.match(/\/(\d{4})(\d{2})\/[^/]*\.x?html?/);
+    if(m) return new Date(+m[1], m[2]-1, 15, 9).getTime();
+  }
+  return Date.now();
+}
+function fmtWhen(ts){
+  const d = new Date(ts), now = new Date();
+  const hm = String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
+  const sameDay = a => a.getFullYear()===d.getFullYear() && a.getMonth()===d.getMonth() && a.getDate()===d.getDate();
+  const yest = new Date(now); yest.setDate(now.getDate()-1);
+  if(sameDay(now)) return "今天 "+hm;
+  if(sameDay(yest) && ts%60000!==0) return "昨天 "+hm;
+  const md = (d.getMonth()+1)+"月"+d.getDate()+"日";
+  return d.getFullYear()===now.getFullYear() ? md : d.getFullYear()+"年"+md;
+}
+function load(k, def){ try{ const v = localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return def; } }
+function save(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.style.display="block"; clearTimeout(t._h); t._h=setTimeout(()=>t.style.display="none",2200); }
+
+/* ================= 状态 ================= */
+let SOURCES = load("hcd.v2.sources", null) || JSON.parse(JSON.stringify(DEFAULT_SOURCES));
+let FAVS    = load("hcd.v2.favs", {});
+let items   = [];
+let srcStat = load("hcd.v2.stat."+todayStr(), {});
+let filt    = {chip:"all", q:"", src:null, favOnly:false};
+let shown   = 120;
+
+/* ================= 抓取 ================= */
+async function fetchText(url, timeout=18000){
+  const c = new AbortController(); const h = setTimeout(()=>c.abort(), timeout);
+  try{ const r = await fetch(url, {signal:c.signal, redirect:"follow"});
+    if(!r.ok) throw Object.assign(new Error("HTTP "+r.status), {status:r.status});
+    return await r.text();
+  } finally { clearTimeout(h); }
+}
+function parseRSSXML(text){
+  const doc = new DOMParser().parseFromString(text, "text/xml");
+  if(doc.querySelector("parsererror")) return [];
+  const nodes = [...doc.querySelectorAll("item"), ...doc.querySelectorAll("entry")];
+  return nodes.map(n => {
+    const linkEl = n.querySelector("link") || n.querySelector("link[href]");
+    let link = (linkEl && (linkEl.getAttribute("href") || linkEl.textContent) || "").trim();
+    const title = stripHtml((n.querySelector("title")||{}).textContent||"");
+    const desc = stripHtml((n.querySelector("description")||n.querySelector("summary")||{textContent:""}).textContent||"");
+    const date = (n.querySelector("pubDate")||n.querySelector("updated")||n.querySelector("published")||{textContent:""}).textContent;
+    return {title, url:link, summary:desc.slice(0,170), pub:date};
+  }).filter(it => it.title && it.url);
+}
+async function fetchRSS(src){
+  // 1) 直连（中新网等自带 CORS 的源可全量获取）
+  try{
+    const t = await fetchText(src.url, 15000);
+    const its = parseRSSXML(t);
+    if(its.length) return {ok:true, items:its, via:"直连"};
+  }catch(e){}
+  // 2) rss2json（免费档每源 10 条）
+  try{
+    const j = JSON.parse(await fetchText(R2J(src.url), 18000));
+    if(j.status==="ok" && j.items && j.items.length)
+      return {ok:true, items:j.items.map(i=>({title:stripHtml(i.title), url:i.link, summary:stripHtml(i.description).slice(0,170), pub:i.pubDate})), via:"rss2json"};
+  }catch(e){}
+  // 3) 公共代理取原始 XML
+  for(const mk of RAW_PROXIES){
+    try{
+      const t = await fetchText(mk(src.url), 18000);
+      const its = parseRSSXML(t);
+      if(its.length) return {ok:true, items:its, via:"代理"};
+    }catch(e){}
+  }
+  return {ok:false};
+}
+async function fetchHTML(src){
+  let lastRetryable = false;
+  for(let attempt=0; attempt<3; attempt++){
+    for(const mk of RAW_PROXIES){
+      try{
+        const t = await fetchText(mk(src.url), 20000);
+        if(t && t.length>2000){ return {ok:true, text:t, via:"代理"}; }
+      }catch(e){ if(e && e.status===429) lastRetryable = true; }
+    }
+    if(attempt<2){
+      status("公共代理限流，"+Math.round(RAW_RETRY_WAIT/1000)+"s 后重试 "+src.name+"（第 "+(attempt+1)+"/2 次）…");
+      await sleep(RAW_RETRY_WAIT);
+    }
+  }
+  return {ok:false, retryable:lastRetryable};
+}
+
+/* ---- 网页解析 ---- */
+function parsePPop(html){
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const out = [];
+  doc.querySelectorAll('a[href*="opinion.people.com.cn/n1/"]').forEach(a => {
+    const href = a.getAttribute("href")||"";
+    if(!/\/n1\/\d{4}\/\d{4}\/[a-z0-9-]+\.s?html/i.test(href)) return;
+    const title = (a.getAttribute("title") || a.textContent || "").replace(/\s+/g," ").trim();
+    if(title.length < 8) return;
+    out.push({title, url:href.startsWith("http")?href:"http:"+href, summary:"", pub:""});
+  });
+  return out;
+}
+function parseShGov(html){
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const out = [];
+  doc.querySelectorAll('a[href]').forEach(a => {
+    const href = a.getAttribute("href")||"";
+    // 上海站内文章 /nw*/yyyymmdd/hash.html
+    let m = href.match(/^\/(nw\d+)\/(\d{8})\/([0-9a-f]+)\.html$/i);
+    if(m){
+      const title = (a.getAttribute("title") || a.textContent || "").replace(/\s+/g," ").trim();
+      if(title.length < 6) return;
+      out.push({title, url:"https://www.shanghai.gov.cn"+href, summary:"", pub:m[2], extra:"上海市政府"});
+      return;
+    }
+    // 页内嵌的国务院要闻
+    if(/gov\.cn\/(yaowen|home|zhengce)\/.*content_\d+\.htm/.test(href)){
+      const title = (a.getAttribute("title") || a.textContent || "").replace(/\s+/g," ").trim();
+      if(title.length < 8) return;
+      out.push({title, url:href, summary:"", pub:"", extra:"国务院要闻"});
+    }
+  });
+  return out;
+}
+function parseGovZc(html){
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  const out = [];
+  doc.querySelectorAll('a[href*="content_"]').forEach(a => {
+    const href = a.getAttribute("href")||"";
+    if(!/content_\d+\.htm/.test(href)) return;
+    const title = (a.getAttribute("title") || a.textContent || "").replace(/\s+/g," ").trim();
+    if(title.length < 6) return;
+    out.push({title, url:href.startsWith("http")?href:"https://www.gov.cn"+href, summary:"", pub:""});
+  });
+  return out;
+}
+const HTML_PARSERS = { ppop:parsePPop, shgov:parseShGov, govzc:parseGovZc };
+
+/* ================= 归一化 / 打标 ================= */
+function normalize(raw, src){
+  const url = raw.url.trim();
+  const ts = parseWhen(raw.pub, url);
+  let source = src.name;
+  if(raw.extra) source = raw.extra + "（" + src.name.replace(/^[^-]*·/,"") + "）";
+  const it = { id:hashId(url), title:raw.title, url, source, srcId:src.id, ts, tags:[], summary:raw.summary||"" };
+  // 申论范文：人民时评文章
+  if(/人民时评|壹时评|人民论坛|观点频道|评论员/.test(it.title) || /opinion\.people\.com\.cn\/n1/.test(url)) it.tags.push("申论范文");
+  const hay = it.title + " " + it.summary;
+  for(const r of TAG_RULES){ if(r.re.test(hay) && !it.tags.includes(r.tag)) it.tags.push(r.tag); }
+  return it;
+}
+function mergeInto(all, incoming){
+  const seen = new Set(all.map(i=>i.id));
+  const tseen = new Set(all.map(i=>i.title.replace(/[\s\p{P}]/gu,"")));
+  let n = 0;
+  for(const it of incoming){
+    const tk = it.title.replace(/[\s\p{P}]/gu,"");
+    if(seen.has(it.id) || tseen.has(tk)){ continue; }
+    seen.add(it.id); tseen.add(tk); all.push(it); n++;
+  }
+  return n;
+}
+
+/* ================= 主流程 ================= */
+async function refreshAll(force){
+  const day = todayStr();
+  const cached = load("hcd.v2.data."+day, null);
+  if(cached && !force){
+    items = cached.items; srcStat = cached.stat||{};
+    renderAll(); status("已加载今日缓存（"+new Date(cached.ts).toLocaleTimeString("zh-CN")+" 抓取）。点「⟳ 刷新」可更新。");
+    return;
+  }
+  items = cached ? cached.items.slice() : [];
+  srcStat = {};
+  renderAll();
+
+  // 阶段一：RSS 直连（并发）
+  const rss = SOURCES.filter(s=>s.on && s.type==="rss");
+  status("正在抓取 "+rss.length+" 个 RSS 频道…");
+  await Promise.all(rss.map(async s => {
+    setStat(s.id, "loading");
+    const r = await fetchRSS(s);
+    if(r.ok){
+      const its = r.items.map(x=>normalize(x,s));
+      const n = mergeInto(items, its);
+      setStat(s.id, "ok", n, r.via);
+    } else setStat(s.id, "fail", 0, "抓取失败");
+    renderAll();
+  }));
+  persistDay(day);
+
+  // 阶段二：网页源（串行 + 退避，公共代理限流）
+  const htmls = SOURCES.filter(s=>s.on && s.type==="html");
+  for(let i=0;i<htmls.length;i++){
+    const s = htmls[i];
+    status("正在抓取网页源（"+(i+1)+"/"+htmls.length+"）："+s.name+" …");
+    setStat(s.id, "loading"); renderAll();
+    if(i>0) await sleep(RAW_GAP);
+    const r = await fetchHTML(s);
+    if(r.ok){
+      const raw = (HTML_PARSERS[s.parse]||(()=>[]))(r.text);
+      if(raw.length){
+        const its = raw.map(x=>normalize(x,s));
+        const n = mergeInto(items, its);
+        setStat(s.id, "ok", n, "网页抓取");
+      } else {
+        setStat(s.id, "fail", 0, "代理返回内容异常，稍后重试");
+      }
+    } else {
+      setStat(s.id, "fail", 0, "公共代理不可用/限流");
+    }
+    renderAll(); persistDay(day);
+  }
+  status("抓取完成：共 "+items.length+" 条。");
+}
+function persistDay(day){
+  items.sort((a,b)=>b.ts-a.ts);
+  save("hcd.v2.data."+day, {ts:Date.now(), items:items.slice(0,600), stat:srcStat});
+  // 清理过期缓存
+  try{
+    for(let i=localStorage.length-1;i>=0;i--){
+      const k = localStorage.key(i);
+      const m = k && k.match(/^hcd\.v1\.data\.(\d{4}-\d{2}-\d{2})$/);
+      if(m && m[1]!==day){
+        const age = (Date.now() - new Date(m[1]).getTime())/864e5;
+        if(age > MAX_AGE_DAYS) localStorage.removeItem(k);
+      }
+    }
+  }catch(e){}
+}
+function setStat(id, st, n, via){ srcStat[id] = {st, n:n||0, via:via||"", ts:Date.now()}; }
+function status(t){ $("#statusline").textContent = t; }
+
+/* ================= 渲染 ================= */
+function renderAll(){
+  const now = new Date();
+  $("#today").textContent = now.getFullYear()+"年"+(now.getMonth()+1)+"月"+now.getDate()+"日 · 星期"+"日一二三四五六"[now.getDay()];
+  // 统计
+  const cnt = k => items.filter(CHIPS.find(c=>c.key===k).test).length;
+  $("#stat").textContent = items.length ? "今日共 "+items.length+" 条 ｜ 申论范文 "+cnt("fanwen")+" 篇 · 上海 "+cnt("sh")+" 条 · 政策 "+cnt("zc")+" 条" : "正在获取今日内容…";
+  renderChips(); renderSrcbar(); renderList();
+}
+function renderChips(){
+  const bar = $("#chipbar");
+  bar.querySelectorAll(".chip").forEach(x=>x.remove());
+  for(const c of CHIPS){
+    const b = document.createElement("button");
+    b.className = "chip"+(filt.chip===c.key?" on":"");
+    b.textContent = c.label;
+    b.onclick = ()=>{ filt.chip=c.key; renderAll(); };
+    bar.insertBefore(b, $("#q"));
+  }
+}
+function renderSrcbar(){
+  const bar = $("#srcbar"); bar.innerHTML = "";
+  for(const s of SOURCES){
+    const st = srcStat[s.id]||{};
+    const d = document.createElement("span");
+    d.className = "srcdot "+(filt.src===s.id?"on ":"")+(st.st||"");
+    d.title = (s.type==="html"?"网页源（依赖公共代理）":"RSS") + (st.via?" · "+st.via:"") + (st.st==="fail"?" · 今日未取到":"");
+    d.innerHTML = '<span class="st"></span>'+esc(s.name.replace(/^[^·]*·/,""))+(st.n?" "+st.n:"");
+    d.onclick = ()=>{ filt.src = filt.src===s.id?null:s.id; renderAll(); };
+    bar.appendChild(d);
+  }
+}
+function currentFiltered(){
+  const chip = CHIPS.find(c=>c.key===filt.chip);
+  const q = filt.q.trim().toLowerCase();
+  return items.filter(it =>
+    (!filt.favOnly || FAVS[it.id]) &&
+    (!filt.src || it.srcId===filt.src) &&
+    chip.test(it) &&
+    (!q || (it.title+" "+it.summary+" "+it.tags.join(" ")).toLowerCase().includes(q))
+  );
+}
+function renderList(){
+  const list = $("#list"); list.innerHTML = "";
+  const arr = filt.favOnly
+    ? Object.values(FAVS).sort((a,b)=>b.ts-a.ts)
+    : currentFiltered().sort((a,b)=>b.ts-a.ts);
+  if(!arr.length){
+    list.innerHTML = '<div class="empty">'+(items.length?"没有符合条件的内容，试试其它筛选。":"今天的内容还在抓取中，请稍候…<br>（首次抓取约需十几秒到几分钟，取决于公共代理速度）")+"</div>";
+    return;
+  }
+  const slice = arr.slice(0, shown);
+  for(const it of slice){
+    const card = document.createElement("article"); card.className = "card";
+    const tags = it.tags.map(t=>'<span class="tag t-'+(t==="申论范文"?"fanwen":t==="上海"?"sh":"")+'">'+esc(t)+"</span>").join(" ");
+    card.innerHTML =
+      '<div class="meta"><span class="src">'+esc(it.source)+"</span><span>"+esc(fmtWhen(it.ts))+"</span>"+tags+
+      '<button class="star'+(FAVS[it.id]?" faved":"")+'" data-id="'+it.id+'" title="收藏">'+(FAVS[it.id]?"★":"☆")+"</button></div>"+
+      '<h3><a href="'+esc(it.url)+'" target="_blank" rel="noopener">'+esc(it.title)+"</a></h3>"+
+      (it.summary?'<p class="sum">'+esc(it.summary)+"</p>":"");
+    list.appendChild(card);
+  }
+  if(arr.length > shown){
+    const b = document.createElement("button");
+    b.className = "btn more"; b.textContent = "显示更多（还有 "+(arr.length-shown)+" 条）";
+    b.onclick = ()=>{ shown += 120; renderList(); };
+    list.appendChild(b);
+  }
+}
+/* 收藏点击（事件委托） */
+document.addEventListener("click", e=>{
+  const star = e.target.closest(".star"); if(!star) return;
+  const id = star.dataset.id;
+  const it = items.find(x=>x.id===id) || Object.values(FAVS).find(x=>x.id===id);
+  if(!it) return;
+  if(FAVS[id]){ delete FAVS[id]; star.textContent="☆"; star.classList.remove("faved"); toast("已取消收藏"); }
+  else { FAVS[id] = it; star.textContent="★"; star.classList.add("faved"); toast("已收藏"); }
+  save("hcd.v2.favs", FAVS);
+});
+
+/* ================= 导出 ================= */
+function exportMarkdown(){
+  const arr = filt.favOnly ? Object.values(FAVS) : currentFiltered();
+  const head = "# 时政积累清单 "+todayStr()+"（"+arr.length+" 条）\n\n";
+  const body = arr.slice(0,300).map(it =>
+    "- ["+it.title+"]("+it.url+")  \n  "+it.source+" · "+fmtWhen(it.ts)+(it.tags.length?" · "+it.tags.join(" / "):"")
+  ).join("\n");
+  copyText(head+body+"\n", "已复制 "+Math.min(arr.length,300)+" 条为 Markdown 清单");
+}
+function copyText(text, okmsg){
+  const done = ()=>toast(okmsg);
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(()=>fallback());
+  } else fallback();
+  function fallback(){
+    const ta = document.createElement("textarea"); ta.value = text;
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); done(); }catch(e){ toast("复制失败，请手动选择文本"); }
+    ta.remove();
+  }
+}
+
+/* ================= 设置面板 ================= */
+function openSet(id){ $("#"+id).classList.add("show"); }
+function closeSet(id){ $("#"+id).classList.remove("show"); }
+document.querySelectorAll("[data-close]").forEach(x=> x.onclick = ()=>closeSet(x.dataset.close));
+document.querySelectorAll(".mask").forEach(m=> m.addEventListener("click", e=>{ if(e.target===m) m.classList.remove("show"); }));
+
+function renderSrcList(){
+  const box = $("#srcList"); box.innerHTML = "";
+  SOURCES.forEach((s, i)=>{
+    const st = srcStat[s.id]||{};
+    const row = document.createElement("div"); row.className = "srcrow";
+    row.innerHTML =
+      '<label class="switch"><input type="checkbox" data-i="'+i+'" '+(s.on?"checked":"")+'><span class="slider"></span></label>'+
+      '<span class="nm">'+esc(s.name)+(s.custom?' <a class="del" data-del="'+i+'">删除</a>':"")+"</span>"+
+      '<span class="url">'+esc(s.url)+"</span>"+
+      '<span class="cnt">'+(st.st==="ok"?"✓ "+st.n+" 条":st.st==="fail"?"✗ 今日失败":st.st==="loading"?"…":"")+"</span>";
+    box.appendChild(row);
+  });
+  box.querySelectorAll("input[type=checkbox]").forEach(cb => cb.onchange = e => { SOURCES[+e.target.dataset.i].on = e.target.checked; });
+  box.querySelectorAll("[data-del]").forEach(x => x.onclick = () => { SOURCES.splice(+x.dataset.del,1); renderSrcList(); });
+}
+$("#btnAddSrc").onclick = ()=>{
+  const name = $("#newName").value.trim(), url = $("#newUrl").value.trim();
+  if(!name || !/^https?:\/\//.test(url)){ toast("请填写名称和 http(s) 开头的 RSS 地址"); return; }
+  SOURCES.push({id:"c"+hashId(url), name, url, type:"rss", on:true, custom:true});
+  $("#newName").value = ""; $("#newUrl").value = "";
+  renderSrcList();
+};
+$("#btnSaveSrc").onclick = ()=>{ save("hcd.v2.sources", SOURCES); closeSet("maskSet"); renderSrcbar(); toast("已保存，点「⟳ 刷新」生效"); };
+$("#btnResetSrc").onclick = ()=>{ SOURCES = JSON.parse(JSON.stringify(DEFAULT_SOURCES)); renderSrcList(); toast("已恢复默认，记得保存"); };
+$("#btnClearCache").onclick = ()=>{
+  try{ for(let i=localStorage.length-1;i>=0;i--){ const k=localStorage.key(i); if(k && k.startsWith("hcd.v2.data.")) localStorage.removeItem(k); } }catch(e){}
+  items = []; srcStat = {}; closeSet("maskSet"); refreshAll(true);
+};
+
+/* ================= 事件绑定 / 启动 ================= */
+$("#btnRefresh").onclick = ()=>refreshAll(true);
+$("#btnSet").onclick = ()=>{ renderSrcList(); openSet("maskSet"); };
+$("#btnHelp").onclick = ()=>openSet("maskHelp");
+$("#btnExport").onclick = exportMarkdown;
+$("#btnFav").onclick = ()=>{
+  filt.favOnly = !filt.favOnly;
+  $("#btnFav").textContent = filt.favOnly?"★ 收藏夹中":"☆ 收藏夹";
+  renderList();
+};
+$("#q").addEventListener("input", e=>{ filt.q = e.target.value; shown = 120; renderList(); });
+
+refreshAll(false);
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+# 本地数据（抓取后自动生成，不入库）
+hc_articles.db
+hc_articles.db-wal
+hc_articles.db-shm
+
+# Python
+__pycache__/
+*.pyc
