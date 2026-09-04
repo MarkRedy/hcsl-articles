@@ -29,13 +29,19 @@ python hc_server.py
 - **收藏**：存在数据库 `favs` 表，长期保留，换浏览器打开同样生效。
 - **单次抓取约 1~2 秒**；有硬超时保护，单个源失败不影响其它源（源状态圆点标红）。
 
-## 每天定时抓取（可选）
+## 定时自动抓取
 
-页面只在打开时展示数据，可挂 Windows 计划任务每天早上自动入库一次（抓完即退出）：
+已配置两个 Windows 计划任务，每天 **11:30** 和 **23:30** 自动抓取入库（静默运行，抓完即退出，不弹窗口）：
 
 ```bat
-schtasks /create /tn "时政日报" /sc daily /st 08:00 /tr "python D:\dev\hc-articles\hc_server.py update"
+schtasks /create /tn "hcsl-daily-1130" /sc daily /st 11:30 /tr "D:\program\python\pythonw.exe D:\dev\hc-articles\hc_server.py update" /f
+schtasks /create /tn "hcsl-daily-2330" /sc daily /st 23:30 /tr "D:\program\python\pythonw.exe D:\dev\hc-articles\hc_server.py update" /f
 ```
+
+- 查看：`schtasks /query /tn "hcsl-daily-1130" /v`
+- 手动触发：`schtasks /run /tn "hcsl-daily-1130"`
+- 删除：`schtasks /delete /tn "hcsl-daily-1130" /f`
+- 注意：任务在**电脑开机且登录**的状态下才会执行；错过的时间点不补跑（比如 11:30 关机，就等 23:30 那次）。抓取只访问新闻网站，不需要代理。
 
 ## 添加 / 调整来源
 
