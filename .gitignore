@@ -6,3 +6,15 @@ hc_articles.db-shm
 # Python
 __pycache__/
 *.pyc
+
+# 真题 PDF（版权数据，仅本地）
+真题库/
+真题库/
+AdministrativeAptitudeTest-main.zip
+
+# 抓取探测临时文件
+bing*.html
+tree*.json
+gkzt.html
+bing1.html
+paths.txt

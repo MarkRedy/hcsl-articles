@@ -112,6 +112,7 @@ footer p{margin:4px 0}
       <span class="userchip" id="userChip" style="display:none"></span>
       <button class="btn" id="btnLogout" style="display:none">退出</button>
       <button class="btn" id="btnFav">☆ 收藏夹</button>
+      <button class="btn" id="btnExams">📚 真题库</button>
       <button class="btn" id="btnExport">复制清单</button>
       <button class="btn" id="btnSet">源设置</button>
       <button class="btn" id="btnHelp">?</button>
@@ -274,6 +275,7 @@ let state = {
   items: [], favItems: [],   // 日数据 / 收藏夹
   sources: [], counts: {}, lastStats: {},
   favOnly: false, running: false, user: null,
+  examView: false, exams: null, examYear: "all",
   filt: {chip:"all", q:"", src:null},
   shown: 120,
 };
@@ -359,6 +361,8 @@ function currentFiltered(){
 }
 function renderList(){
   const list = $("#list"); list.innerHTML = "";
+  $("#chipbar").style.display = state.examView ? "none" : "";
+  if(state.examView) return renderExamList(list);
   const arr = state.favOnly ? state.favItems : currentFiltered().slice().sort((a,b)=>b.ts-a.ts);
   if(!arr.length){
     list.innerHTML = '<div class="empty">'+(state.favOnly?"还没有收藏，点文章卡片右上角的 ☆ 收藏。":(state.items.length?"没有符合条件的内容，试试其它筛选。":"当天还没有数据。"))+"</div>";
@@ -382,6 +386,54 @@ function renderList(){
     b.onclick = ()=>{ state.shown += 120; renderList(); };
     list.appendChild(b);
   }
+}
+/* ================= 真题库视图 ================= */
+async function toggleExamView(){
+  state.examView = !state.examView;
+  $("#btnExams").textContent = state.examView ? "📰 返回文章" : "📚 真题库";
+  state.favOnly = false; $("#btnFav").textContent = "☆ 收藏夹";
+  if(state.examView && !state.exams){
+    const j = await api("/api/exams");
+    state.exams = j.exams || [];
+  }
+  state.shown = 120;
+  renderList();
+}
+function renderExamList(list){
+  const exams = state.exams || [];
+  if(!exams.length){ list.innerHTML = '<div class="empty">真题库为空，点「⟳ 刷新」抓取。</div>'; return; }
+  const years = [...new Set(exams.map(e=>e.year))].sort().reverse();
+  const yf = state.examYear || "all";
+  const arr = exams.filter(e => yf==="all" || String(e.year)===yf);
+  // 年份筛选
+  const bar = document.createElement("div"); bar.className = "chipbar";
+  const mk = (label, key) => { const b=document.createElement("button"); b.className="chip"+(yf===key?" on":"");
+    b.textContent=label; b.onclick=()=>{ state.examYear=key; renderList(); }; return b; };
+  bar.appendChild(mk("全部年份","all"));
+  for(const y of years) bar.appendChild(mk(String(y), String(y)));
+  list.appendChild(bar);
+  // 按地区分组
+  const order = ["上海","江苏","浙江","安徽","国考"];
+  const groups = {};
+  for(const e of arr){ (groups[e.region]=groups[e.region]||[]).push(e); }
+  const srcName = {上海:"中公·上海公务员", 江苏:"中公·江苏公务员", 浙江:"中公·浙江公务员", 安徽:"中公·安徽公务员", 国考:"gkzhenti·国考真题", 其他省份:"gkzhenti·各省真题"};
+  for(const region of [...order.filter(r=>groups[r]), ...Object.keys(groups).filter(r=>!order.includes(r))]){
+    const h = document.createElement("h3");
+    h.style.cssText = "margin:18px 0 4px;font-size:15px;color:var(--ink2)";
+    h.textContent = region + "（" + groups[region].length + "）";
+    list.appendChild(h);
+    for(const e of groups[region]){
+      const card = document.createElement("article"); card.className = "card";
+      card.innerHTML =
+        '<div class="meta"><span class="src">'+esc(e.year)+"</span>"+(e.subject!=="综合"?'<span class="tag">'+esc(e.subject)+"</span>":"")+
+        '<span>'+esc(srcName[e.region]||e.region)+"</span></div>"+
+        '<h3><a href="'+esc(e.url)+'" target="_blank" rel="noopener">'+esc(e.title)+"</a></h3>";
+      list.appendChild(card);
+    }
+  }
+  const tip = document.createElement("p"); tip.className = "hint";
+  tip.textContent = "真题条目指向中公/华图原文（部分试题为图片形式），年份以标题标注为准；点「⟳ 刷新」可同步更新。";
+  list.appendChild(tip);
 }
 /* 收藏 / 取消（入库） */
 document.addEventListener("click", async e=>{
@@ -470,6 +522,7 @@ $("#btnHelp").onclick = ()=>openSet("maskHelp");
 $("#btnExport").onclick = exportMarkdown;
 $("#btnFav").onclick = async ()=>{
   state.favOnly = !state.favOnly;
+  state.examView = false; $("#btnExams").textContent = "📚 真题库";
   $("#btnFav").textContent = state.favOnly?"★ 收藏夹中":"☆ 收藏夹";
   if(state.favOnly){
     const j = await api("/api/favs");
@@ -482,9 +535,11 @@ $("#histDate").addEventListener("change", e=>{
   const v = e.target.value;
   if(!v) return;
   state.viewDate = v; state.shown = 120;
+  state.examView = false; $("#btnExams").textContent = "📚 真题库";
   if(state.favOnly){ state.favOnly=false; $("#btnFav").textContent="☆ 收藏夹"; }
   loadDay(v).then(pollStatus);
 });
+$("#btnExams").onclick = toggleExamView;
 
 (async function boot(){
   const me = await api("/api/me");

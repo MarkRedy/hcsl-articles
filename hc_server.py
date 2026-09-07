@@ -88,6 +88,9 @@ def db():
         id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL,
         pw_hash TEXT NOT NULL, salt TEXT NOT NULL, created_ts INTEGER)""")
     conn.execute("CREATE TABLE IF NOT EXISTS sessions(token TEXT PRIMARY KEY, user_id INTEGER NOT NULL, created_ts INTEGER)")
+    conn.execute("""CREATE TABLE IF NOT EXISTS exams(
+        id TEXT PRIMARY KEY, region TEXT NOT NULL, year INTEGER, subject TEXT,
+        title TEXT NOT NULL, url TEXT UNIQUE NOT NULL, source TEXT, first_seen TEXT NOT NULL)""")
     # 旧库升级：favs 补 user_id 列；老结构主键只有 id，多用户会互相覆盖 → 重建为复合主键
     cols = [r["name"] for r in conn.execute("PRAGMA table_info(favs)")]
     pk_cols = [r["name"] for r in conn.execute("PRAGMA table_info(favs)") if r["pk"]]
@@ -328,6 +331,74 @@ def parse_yicai(text):
 HTML_PARSERS = {"ppop": parse_ppop, "shgov": parse_shgov, "govzc": parse_govzc,
                 "jiemian": parse_jiemian, "yicai": parse_yicai}
 
+# ---------------- 真题栏目（行测/申论历年真题，聚合标题+原文链接） ----------------
+EXAM_SOURCES = [
+    {"region": "上海", "subject": "行测", "url": "http://sh.offcn.com/html/shanghaigongwuyuan/kaoshitiku/xingce/zt/"},
+    {"region": "上海", "subject": "申论", "url": "http://sh.offcn.com/html/shanghaigongwuyuan/kaoshitiku/shenlun/zt/"},
+    {"region": "江苏", "subject": "行测", "url": "http://js.offcn.com/html/jiangsugongwuyuan/kaoshitiku/xingce/zt/"},
+    {"region": "江苏", "subject": "申论", "url": "http://js.offcn.com/html/jiangsugongwuyuan/kaoshitiku/shenlun/zt/"},
+    {"region": "浙江", "subject": "行测", "url": "http://zj.offcn.com/html/zhejianggongwuyuan/kaoshitiku/xingce/zt/"},
+    {"region": "浙江", "subject": "申论", "url": "http://zj.offcn.com/html/zhejianggongwuyuan/kaoshitiku/shenlun/zt/"},
+    {"region": "安徽", "subject": "行测", "url": "http://ah.offcn.com/html/anhuigongwuyuan/kaoshitiku/xingce/zt/"},
+    {"region": "安徽", "subject": "申论", "url": "http://ah.offcn.com/html/anhuigongwuyuan/kaoshitiku/shenlun/zt/"},
+    {"region": "auto", "subject": "行测", "url": "https://gwy.gkzhenti.cn/paper", "site": "gkzhenti"},
+]
+
+def parse_exam_list(html_text, region, subject, base_url):
+    out = []
+    for href, title in iter_links(html_text):
+        t = title.strip()
+        m = re.search(r"(20\d{2})", t)
+        if not m or int(m.group(1)) < 2021:
+            continue
+        if not re.search(r"真题|试题|答案|解析|题（", t):
+            continue
+        if "事业单位" in t or "面试" in t:
+            continue
+        if region == "国考" and not re.search(r"国考|国家公务员", t):
+            continue
+        if region == "auto":
+            if not re.search(r"行测", t):
+                continue
+            if re.search(r"国考|国家公务员", t):
+                region_here = "国考"
+            elif "上海" in t: region_here = "上海"
+            elif "江苏" in t: region_here = "江苏"
+            elif "浙江" in t: region_here = "浙江"
+            elif "安徽" in t: region_here = "安徽"
+            else: region_here = "其他省份"
+        else:
+            region_here = region
+        if not re.search(r"/html/20\d\d/|/20\d\d/|/paper/", href):
+            continue
+        if href.startswith("//"):
+            href = "http:" + href
+        elif href.startswith("/"):
+            from urllib.parse import urlparse
+            href = "https://" + urlparse(base_url).netloc + href if "gkzhenti" in base_url else "http://" + urlparse(base_url).netloc + href
+        if not href.startswith("http"):
+            continue
+        out.append({"title": t, "url": href, "year": int(m.group(1)), "region": region_here})
+    return out
+
+def crawl_exams(conn):
+    n = 0
+    today = time.strftime("%Y-%m-%d")
+    for s in EXAM_SOURCES:
+        try:
+            items = parse_exam_list(http_get(s["url"]), s["region"], s["subject"], s["url"])
+            for it in items:
+                iid = str_hash(it["url"])
+                conn.execute(
+                    "INSERT OR IGNORE INTO exams(id,region,year,subject,title,url,source,first_seen) VALUES(?,?,?,?,?,?,?,?)",
+                    (iid, it["region"], it["year"], s["subject"], it["title"], it["url"],
+                     "gkzhenti" if s.get("site") == "gkzhenti" else "中公", today))
+            conn.commit()
+            n += len(items)
+        except Exception as e:
+            print("真题栏目失败 %s: %s" % (s["region"] + s["subject"], str(e)[:60]), flush=True)
+    return n
+
 class Fetcher:
     def __init__(self):
         self.lock = threading.Lock()
@@ -371,6 +442,12 @@ class Fetcher:
                     except Exception as e:
                         stats[s["id"]] = {"st": "fail", "n": 0, "via": str(e)[:80]}
                         self.log(conn, "%s：失败（%s）" % (s["name"], str(e)[:80]))
+                # 阶段三：真题栏目（标题+原文链接）
+                try:
+                    n_ex = crawl_exams(conn)
+                    self.log(conn, "真题栏目：%d 条" % n_ex)
+                except Exception as e:
+                    self.log(conn, "真题栏目失败（%s）" % str(e)[:60])
                 kv_set(conn, "last_stats", stats)
                 kv_set(conn, "last_fetch", int(time.time() * 1000))
                 kv_set(conn, "last_update_date", today)
@@ -521,6 +598,17 @@ class Handler(BaseHTTPRequestHandler):
                 try:
                     return self._json({"sources": kv_get(conn, "sources", None) or DEFAULT_SOURCES,
                                        "lastStats": kv_get(conn, "last_stats", {})})
+                finally:
+                    conn.close()
+            if path == "/api/exams":
+                conn = db()
+                try:
+                    rows = conn.execute(
+                        "SELECT * FROM exams ORDER BY year DESC, region, subject, title").fetchall()
+                    return self._json({"exams": [{
+                        "id": r["id"], "region": r["region"], "year": r["year"],
+                        "subject": r["subject"], "title": r["title"], "url": r["url"],
+                    } for r in rows]})
                 finally:
                     conn.close()
             if path == "/api/status":
