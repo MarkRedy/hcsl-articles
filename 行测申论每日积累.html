@@ -416,7 +416,8 @@ function renderExamList(list){
   const order = ["上海","江苏","浙江","安徽","国考"];
   const groups = {};
   for(const e of arr){ (groups[e.region]=groups[e.region]||[]).push(e); }
-  const srcName = {上海:"中公·上海公务员", 江苏:"中公·江苏公务员", 浙江:"中公·浙江公务员", 安徽:"中公·安徽公务员", 国考:"gkzhenti·国考真题", 其他省份:"gkzhenti·各省真题"};
+  const srcName = {上海:"中公·上海公务员", 江苏:"中公·江苏公务员", 浙江:"中公·浙江公务员", 安徽:"中公·安徽公务员", 国考:"gkzhenti·真题站", 其他省份:"gkzhenti·各省真题", 选调:"gkzhenti·选调"};
+  const srcBySource = {中公:"中公", gkzhenti:"gkzhenti·真题站", AAT真题PDF:"GitHub·真题PDF"};
   for(const region of [...order.filter(r=>groups[r]), ...Object.keys(groups).filter(r=>!order.includes(r))]){
     const h = document.createElement("h3");
     h.style.cssText = "margin:18px 0 4px;font-size:15px;color:var(--ink2)";
@@ -424,10 +425,13 @@ function renderExamList(list){
     list.appendChild(h);
     for(const e of groups[region]){
       const card = document.createElement("article"); card.className = "card";
+      const mirror = e.source==="AAT真题PDF"
+        ? ' <a class="tag" href="https://gh-proxy.com/'+esc(e.url)+'" target="_blank" rel="noopener" title="raw 被墙时用镜像下载">镜像</a>'
+        : "";
       card.innerHTML =
         '<div class="meta"><span class="src">'+esc(e.year)+"</span>"+(e.subject!=="综合"?'<span class="tag">'+esc(e.subject)+"</span>":"")+
-        '<span>'+esc(srcName[e.region]||e.region)+"</span></div>"+
-        '<h3><a href="'+esc(e.url)+'" target="_blank" rel="noopener">'+esc(e.title)+"</a></h3>";
+        '<span>'+esc(srcBySource[e.source]||srcName[e.region]||e.region)+"</span></div>"+
+        '<h3><a href="'+esc(e.url)+'" target="_blank" rel="noopener">'+esc(e.title)+"</a></h3>"+mirror;
       list.appendChild(card);
     }
   }

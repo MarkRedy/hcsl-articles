@@ -342,7 +342,56 @@ EXAM_SOURCES = [
     {"region": "安徽", "subject": "行测", "url": "http://ah.offcn.com/html/anhuigongwuyuan/kaoshitiku/xingce/zt/"},
     {"region": "安徽", "subject": "申论", "url": "http://ah.offcn.com/html/anhuigongwuyuan/kaoshitiku/shenlun/zt/"},
     {"region": "auto", "subject": "行测", "url": "https://gwy.gkzhenti.cn/paper", "site": "gkzhenti"},
+    {"region": "auto", "subject": "行测", "url": "https://api.github.com/repos/Yaoyuan-Zhang319/AdministrativeAptitudeTest/git/trees/main?recursive=1", "site": "aat"},
 ]
+
+AAT_RAW = "https://raw.githubusercontent.com/Yaoyuan-Zhang319/AdministrativeAptitudeTest/main/"
+AAT_BLOB = "https://github.com/Yaoyuan-Zhang319/AdministrativeAptitudeTest/blob/main/"
+
+def build_aat_items():
+    """从 GitHub 目录清单生成行测真题 PDF 条目（真题+答案，全部年份）。"""
+    import json as _json
+    tree = None
+    for attempt_url in ("https://api.github.com/repos/Yaoyuan-Zhang319/AdministrativeAptitudeTest/git/trees/main?recursive=1",):
+        for proxy in (None, "http://127.0.0.1:7897"):
+            try:
+                import urllib.request
+                handlers = [urllib.request.ProxyHandler({} if proxy is None else {"http": proxy, "https": proxy})]
+                opener = urllib.request.build_opener(*handlers)
+                req = urllib.request.Request(attempt_url, headers={"User-Agent": UA})
+                tree = _json.loads(opener.open(req, timeout=25).read().decode("utf-8"))
+                break
+            except Exception:
+                tree = None
+        if tree:
+            break
+    if not tree or "tree" not in tree:
+        return []
+    out = []
+    for t in tree.get("tree", []):
+        p = t.get("path", "")
+        if not p.lower().endswith(".pdf") or "/" not in p:
+            continue
+        fname = p.rsplit("/", 1)[-1]
+        m = re.search(r"(20\d{2})", fname)
+        if not m:
+            continue
+        if "省考以及市考/" in p:
+            seg = p.split("省考以及市考/")[1].split("/")[0]
+            region = re.sub(r"(省考|市考)$", "", seg) or "其他省份"
+        elif p.startswith("国考/"):
+            region = "国考"
+        elif p.startswith("选调/"):
+            region = "选调"
+        else:
+            region = "其他省份"
+        out.append({
+            "title": fname[:-4] + "（PDF）",
+            "url": AAT_RAW + urllib.parse.quote(p),
+            "year": int(m.group(1)),
+            "region": region,
+        })
+    return out
 
 def parse_exam_list(html_text, region, subject, base_url):
     out = []
@@ -386,13 +435,16 @@ def crawl_exams(conn):
     today = time.strftime("%Y-%m-%d")
     for s in EXAM_SOURCES:
         try:
-            items = parse_exam_list(http_get(s["url"]), s["region"], s["subject"], s["url"])
+            if s.get("site") == "aat":
+                items = build_aat_items()
+            else:
+                items = parse_exam_list(http_get(s["url"]), s["region"], s["subject"], s["url"])
             for it in items:
                 iid = str_hash(it["url"])
+                src = "gkzhenti" if s.get("site") == "gkzhenti" else ("AAT真题PDF" if s.get("site") == "aat" else "中公")
                 conn.execute(
                     "INSERT OR IGNORE INTO exams(id,region,year,subject,title,url,source,first_seen) VALUES(?,?,?,?,?,?,?,?)",
-                    (iid, it["region"], it["year"], s["subject"], it["title"], it["url"],
-                     "gkzhenti" if s.get("site") == "gkzhenti" else "中公", today))
+                    (iid, it["region"], it["year"], s["subject"], it["title"], it["url"], src, today))
             conn.commit()
             n += len(items)
         except Exception as e:
@@ -608,6 +660,7 @@ class Handler(BaseHTTPRequestHandler):
                     return self._json({"exams": [{
                         "id": r["id"], "region": r["region"], "year": r["year"],
                         "subject": r["subject"], "title": r["title"], "url": r["url"],
+                        "source": r["source"] or "",
                     } for r in rows]})
                 finally:
                     conn.close()
